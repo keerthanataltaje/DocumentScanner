@@ -31,6 +31,22 @@ def resize(image, width = None, height = None, inter = cv2.INTER_AREA):
 	# return the resized image
 	return resized_image
 
+
+def shape_correct(h):
+    h=h.reshape((4,2))
+    hnew=np.zeros((4,2),dtype=np.float32)
+    add=h.sum(1)
+    hnew[0] = h[np.argmin(add)]
+    hnew[2] = h[np.argmax(add)]
+    
+    diff=np.diff(h,axis = 1)
+    hnew[1] = h[np.argmin(diff)]
+    hnew[3] = h[np.argmax(diff)]
+    return hnew
+
+
+
+
 def contour_detection():
     image_path='img_1.jpeg'
     image=cv2.imread(image_path)
@@ -40,50 +56,64 @@ def contour_detection():
     #Resize the image for convinience
     image=resize(image,height=400)
     print(image.shape)
+    resized_width,resized_height,_=image.shape
     path='F:\KeerthanaProjects\intermediate_images'
     new_path=os.path.join(path,'resizedimg_2.jpeg')
     cv2.imwrite(new_path, image)
     user_interface.display(new_path)
     #cv2.imshow("Image",image)
-    '''
+   
     #Preparation for Canny edge detection and applying it
     gray_image=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-    gray_image=cv2.GaussianBlur(gray_image,(5,5),0)
+    gray_image=cv2.GaussianBlur(gray_image,(9,9),0)
     #cv2.imshow("Gray-Image",gray_image)
     
     
     #Remove any holes between edges
     kernel=cv2.getStructuringElement(cv2.MORPH_RECT,(9,9))
+    morph_close=cv2.morphologyEx(gray_image, cv2.MORPH_CLOSE, kernel)
     #cv2.imshow("Morphed-Image",morph_close)
     edge=cv2.Canny(morph_close,0,84)
     cv2.imshow("Edged-Image",edge)
     
     #Find Contours
-    target=None
     
-    (contours,heir)=cv2.findContours(edge,cv2.cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
-    contours=sorted(contours,key=cv2.contourArea,reverse=True)
+    
+    (contours,heir)=cv2.findContours(edge,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+    contours=sorted(contours,key=cv2.contourArea,reverse=True)[:10]
     for c in contours:
         perimeter=cv2.arcLength(c,True)
-        approx=cv2.approxPolyDP(c,0.02*perimeter,True)
-        if len(approx):
+        approx=cv2.approxPolyDP(c,0.02*perimeter,True)[:4]
+        target=approx
+        if len(approx)>=4:
             target=approx
             break
-    print("Lengthof approx=",len(approx))
-    print("Target=>",target,"Length of target=>",len(target))
+    #approx=shape_correct(approx)
+    print("Lengthof approx=",len(approx),approx)
     
-    cv2.drawContours(image,[target],-1,(0,255,0),2)
+    #points_required=([[0,0],[resized_height,0],[resized_height,resized_width],[0,resized_width]])
+    #transform_image = cv2.getPerspectiveTransform(approx,np.float32(points_required))
+    #final_image = cv2.warpPerspective(image,transform_image,(500,400))
+   
+    cv2.drawContours(image,[approx],-1,(0,255,0),2)
     cv2.imshow("Contour_image",image)
     
-    pts = np.float32([[0,0],[400,0],[400,225],[0,225]])
+    t_right= (resized_width, 0)
+    b_right = (resized_width, resized_height)
+    b_left = (0, resized_height)
+    t_left = (0, 0)
+    points_required = np.array([[t_left], [t_right], [b_right], [b_left]])
+    
+  
     
     #Get a top down view of the image
-    transform_image = cv2.getPerspectiveTransform(np.float32(target),pts)
-    final_image = cv2.warpPerspective(image,transform_image,(400,225))
-    cv2.drawContours(final_image, [target], -1, (0, 255, 0), 2)
-    cv2.imshow("Contour_image",image)
-   
+    transform_image = cv2.getPerspectiveTransform(np.float32(target),np.float32(points_required))
+    final_image = cv2.warpPerspective(image,transform_image,(resized_width,resized_height))
+    cv2.imshow("transformed image=",final_image)
+    #cv2.drawContours(final_image, [target], -1, (0, 255, 0), 2)
+    #cv2.imshow("Contour_image",image)
+    
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    '''
+ 
 contour_detection()
