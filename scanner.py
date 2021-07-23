@@ -109,9 +109,13 @@ def contour_detection():
     #Get a top down view of the image
     transform_image = cv2.getPerspectiveTransform(np.float32(target),np.float32(points_required))
     final_image = cv2.warpPerspective(image,transform_image,(resized_width,resized_height))
-    cv2.imshow("transformed image=",final_image)
+    final_image_rotated=cv2.rotate(final_image,cv2.ROTATE_90_CLOCKWISE)
+    final_image_flip=cv2.flip(final_image_rotated, 1)
+    #final_image_rotated=cv2.rotated(final_image,cv2.ROTATE_90_ANTICLOCKWISE)
+    cv2.imshow("transformed image=",final_image_flip)
+    #thresh = cv2.adaptiveThreshold(final_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 15)
     #cv2.drawContours(final_image, [target], -1, (0, 255, 0), 2)
-    #cv2.imshow("Contour_image",image)
+    #cv2.imshow("Contour_image",thresh)
     
     cv2.waitKey(0)
     cv2.destroyAllWindows()
